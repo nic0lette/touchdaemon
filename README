@@ -1,0 +1,20 @@
+EDIT: This is a fork of http://sourceforge.net/projects/touchdaemon/
+I haven't cleaned up the code yet, or updated this file. Sorry. Soon(tm).
+
+### MAIN CODE
+
+compilation: g++ -lX11 -lXi touchdaemon.c -o name
+
+./name '-c<command>' the quotas are against spaces and doublequotes in the command
+example:
+./name '-cxinput set-prop "Logitech USB Gaming Mouse" "Device Enabled"'
+
+You get the xinput string by tipping "xinput list", picking out your touchpad name and replace my "Logitech USB Gaming Mouse".
+
+See the help options to get more functionalities. XRecod ( -R) is deactivated.
+To press one key for more than a second sets the touchpad to enabled.
+
+
+### TOOLS:
+
+There is a script from Hielos to alternate the touchpad status on demand
