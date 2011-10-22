@@ -1,6 +1,6 @@
 
 touchdaemon : src/touchdaemon.c 
-	g++ -lX11 -lXi src/touchdaemon.c -o touchdaemon
+	g++ -Wall -lX11 -lXi src/touchdaemon.c -o touchdaemon
 
 clean:
 	rm touchdaemon

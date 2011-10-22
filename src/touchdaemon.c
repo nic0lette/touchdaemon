@@ -141,7 +141,7 @@ install_signal_handler(void)
 	SIGPWR
 #endif
     };
-    int i;
+    unsigned int i;
     struct sigaction act;
     sigset_t set;
 
@@ -202,7 +202,7 @@ get_time(void)
     return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
-static void ///////////////////////////////XXXXXXXXXXXXXXXXXXXXX//////////////////////////////////////////////////////
+static void
 main_loop(Display *display, double idle_time, int poll_delay)
 {
     double last_activity = 0.0;
@@ -253,188 +253,8 @@ setup_keyboard_mask(Display *display, int ignore_modifier_keys)
     }
 }
 
-/* ---- the following code is for using the xrecord extension ----- */
-//#ifdef HAVE_XRECORD
-//
-//#define MAX_MODIFIERS 16
-//
-///* used for exchanging information with the callback function */
-//struct xrecord_callback_results {
-//    XModifierKeymap *modifiers;
-//    Bool key_event;
-//    Bool non_modifier_event;
-//    KeyCode pressed_modifiers[MAX_MODIFIERS];
-//};
-//
-///* test if the xrecord extension is found */
-//Bool check_xrecord(Display *display) {
-//
-//    Bool   found;
-//    Status status;
-//    int    major_opcode, minor_opcode, first_error;
-//    int    version[2];
-//
-//    found = XQueryExtension(display,
-//			    "RECORD",
-//			    &major_opcode,
-//			    &minor_opcode,
-//			    &first_error);
-//
-//    status = XRecordQueryVersion(display, version, version+1);
-//    if (!background && status) {
-//	printf("X RECORD extension version %d.%d\n", version[0], version[1]);
-//    }
-//    return found;
-//}
-//
-///* called by XRecordProcessReplies() */
-//void xrecord_callback( XPointer closure, XRecordInterceptData* recorded_data) {
-//
-//    struct xrecord_callback_results *cbres;
-//    xEvent *xev;
-//    int nxev;
-//
-//    cbres = (struct xrecord_callback_results *)closure;
-//
-//    if (recorded_data->category != XRecordFromServer) {
-//	XRecordFreeData(recorded_data);
-//	return;
-//    }
-//
-//    nxev = recorded_data->data_len / 8;
-//    xev = (xEvent *)recorded_data->data;
-//    while(nxev--) {
-//
-//	if ( (xev->u.u.type == KeyPress) || (xev->u.u.type == KeyRelease)) {
-//	    int i;
-//	    int is_modifier = 0;
-//
-//	    cbres->key_event = 1; /* remember, a key was pressed or released. */
-//
-//	    /* test if it was a modifier */
-//	    for (i = 0; i < 8 * cbres->modifiers->max_keypermod; i++) {
-//		KeyCode kc = cbres->modifiers->modifiermap[i];
-//
-//		if (kc == xev->u.u.detail) {
-//		    is_modifier = 1; /* yes, it is a modifier. */
-//		    break;
-//		}
-//	    }
-//
-//	    if (is_modifier) {
-//		if (xev->u.u.type == KeyPress) {
-//		    for (i=0; i < MAX_MODIFIERS; ++i)
-//			if (!cbres->pressed_modifiers[i]) {
-//			    cbres->pressed_modifiers[i] = xev->u.u.detail;
-//			    break;
-//			}
-//		} else { /* KeyRelease */
-//		    for (i=0; i < MAX_MODIFIERS; ++i)
-//			if (cbres->pressed_modifiers[i] == xev->u.u.detail)
-//			    cbres->pressed_modifiers[i] = 0;
-//		}
-//
-//	    } else {
-//		/* remember, a non-modifier was pressed. */
-//		cbres->non_modifier_event = 1;
-//	    }
-//	}
-//
-//	xev++;
-//    }
-//
-//    XRecordFreeData(recorded_data); /* cleanup */
-//}
-//
-//static int is_modifier_pressed(const struct xrecord_callback_results *cbres) {
-//    int i;
-//
-//    for (i = 0; i < MAX_MODIFIERS; ++i)
-//	if (cbres->pressed_modifiers[i])
-//	    return 1;
-//
-//    return 0;
-//}
-//
-//void record_main_loop(Display* display, double idle_time) {
-//
-//    struct xrecord_callback_results cbres;
-//    XRecordContext context;
-//    XRecordClientSpec cspec = XRecordAllClients;
-//    Display *dpy_data;
-//    XRecordRange *range;
-//    int i;
-//
-//    dpy_data = XOpenDisplay(NULL); /* we need an additional data connection. */
-//    range  = XRecordAllocRange();
-//
-//    range->device_events.first = KeyPress;
-//    range->device_events.last  = KeyRelease;
-//
-//    context =  XRecordCreateContext(dpy_data, 0,
-//				    &cspec,1,
-//				    &range, 1);
-//
-//    XRecordEnableContextAsync(dpy_data, context, xrecord_callback, (XPointer)&cbres);
-//
-//    cbres.modifiers  = XGetModifierMapping(display);
-//    /* clear list of modifiers */
-//    for (i = 0; i < MAX_MODIFIERS; ++i)
-//	cbres.pressed_modifiers[i] = 0;
-//
-//    while (1) {
-//
-//	int fd = ConnectionNumber(dpy_data);
-//	fd_set read_fds;
-//	int ret;
-//	int disable_event = 0;
-//	struct timeval timeout;
-//
-//	FD_ZERO(&read_fds);
-//	FD_SET(fd, &read_fds);
-//
-//	ret = select(fd+1 /* =(max descriptor in read_fds) + 1 */,
-//		     &read_fds, NULL, NULL,
-//		     pad_disabled ? &timeout : NULL /* timeout only required for enabling */ );
-//
-//	if (FD_ISSET(fd, &read_fds)) {
-//
-//	    cbres.key_event = 0;
-//	    cbres.non_modifier_event = 0;
-//
-//	    XRecordProcessReplies(dpy_data);
-//
-//	    if (!ignore_modifier_keys && cbres.key_event) {
-//		disable_event = 1;
-//	    }
-//
-//	    if (cbres.non_modifier_event &&
-//		!(ignore_modifier_combos && is_modifier_pressed(&cbres)) ) {
-//		disable_event = 1;
-//	    }
-//	}
-//
-//	if (disable_event) {
-//	    /* adjust the enable_time */
-//	    timeout.tv_sec  = (int)idle_time;
-//	    timeout.tv_usec = (idle_time-(double)timeout.tv_sec) * 1.e6;
-//
-//	    toggle_touchpad(False);
-//	}
-//
-//	if (ret == 0 && pad_disabled) { /* timeout => enable event */
-//	    toggle_touchpad(True);
-//	    if (!background) printf("enable touchpad\n");
-//	}
-//
-//    } /* end while(1) */
-//
-//    XFreeModifiermap(cbres.modifiers);
-//}
-//#endif /* HAVE_XRECORD */
-
 static XDevice *
-dp_get_device(Display *dpy, int dev_id)
+dp_get_device(Display *dpy, unsigned int dev_id, int have_dev_id)
 {
     XDevice* dev		= NULL;
     XDeviceInfo *info		= NULL;
@@ -464,7 +284,7 @@ dp_get_device(Display *dpy, int dev_id)
          * device.  If a device id was specified, we should only accept
          * that device.
          */
-	if ((dev_id == -1 && (info[ndevices].type == touchpad_type
+	if ((!have_dev_id && (info[ndevices].type == touchpad_type
             || info[ndevices].type == mouse_type
             || info[ndevices].type == trackball_type))
             || dev_id == info[ndevices].id) {
@@ -474,7 +294,7 @@ dp_get_device(Display *dpy, int dev_id)
 		fprintf(stderr, "Failed to open device '%s'.\n",
 			info[ndevices].name);
 		error = 1;
-		goto unwind;
+                break;
 	    }
 
 	    properties = XListDeviceProperties(dpy, dev, &nprops);
@@ -482,7 +302,7 @@ dp_get_device(Display *dpy, int dev_id)
 	    {
 	        fprintf(stderr, "No properties on device '%s'.\n", info[ndevices].name);
 	        error = 1;
-	        goto unwind;
+                break;
             }
 
 	    while(nprops--)
@@ -498,19 +318,18 @@ dp_get_device(Display *dpy, int dev_id)
 	    {
 	        fprintf(stderr, "Could not identify enable/disable property on device '%s'.\n", info[ndevices].name);
 	        error = 1;
-	        goto unwind;
+                break;
             }
 
 	    break; /* Yay, device is suitable */
 	}
     }
 
-unwind:
     XFree(properties);
     XFreeDeviceList(info);
-    if (!dev)
+    if (error)
     {
-        if (dev_id == -1)
+        if (!have_dev_id)
         {
 	    fprintf(stderr, "Unable to find a device.\n");
         }
@@ -518,11 +337,13 @@ unwind:
         {
 	    fprintf(stderr, "Unable to find the specified device (id=%d).\n", dev_id);
         }
-    }
-    else if (error && dev)
-    {
-	XCloseDevice(dpy, dev);
-	dev = NULL;
+
+        // Free allocated memory
+        if (dev)
+        {
+            XCloseDevice(dpy, dev);
+            dev = NULL;
+    	}
     }
     return dev;
 }
@@ -534,7 +355,6 @@ main(int argc, char *argv[])
     int poll_delay = 200000;	    /* 200 ms */
     int dev_id = -1;
     int c;
-    int use_xrecord = 0;
 
     /* Parse command line parameters */
     while ((c = getopt(argc, argv, "i:m:dp:kKD:?")) != EOF) {
@@ -577,7 +397,7 @@ main(int argc, char *argv[])
 	exit(2);
     }
 
-    if (!(dev = dp_get_device(display, dev_id)))
+    if (!(dev = dp_get_device(display, dev_id, (dev_id != -1))))
 	exit(2);
 
     /* Install a signal handler to restore synaptics parameters on exit */
@@ -609,23 +429,9 @@ main(int argc, char *argv[])
     pad_disabled = False;
     store_current_touchpad_state();
 
-/*#ifdef HAVE_XRECORD
-    if (use_xrecord)
-    {
-	if(check_xrecord(display))
-	    record_main_loop(display, idle_time);
-	else {
-	    fprintf(stderr, "Use of XRecord requested, but failed to "
-		    " initialize.\n");
-            exit(2);
-        }
-    } else
-#endif /* HAVE_XRECORD */
-      {
-	setup_keyboard_mask(display, ignore_modifier_keys);
+    setup_keyboard_mask(display, ignore_modifier_keys);
 
-	/* Run the main loop */
-	main_loop(display, idle_time, poll_delay);
-      }
+    /* Run the main loop */
+    main_loop(display, idle_time, poll_delay);
     return 0;
 }
